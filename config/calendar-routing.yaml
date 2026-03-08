@@ -1,0 +1,191 @@
+# OpenClaw Calendar Routing Configuration
+# CRITICAL: Route ALL calendar operations through SecondBrain Calendar Agent
+# Calendar is the single source of truth for Shawn's time and commitments
+
+integration:
+  name: "SecondBrain Calendar"
+  enabled: true
+  version: "1.0"
+  priority: "CRITICAL"
+  base_url: "http://localhost:5024"  # Calendar agent port
+
+# ============================================================================
+# INTENT ROUTING
+# ============================================================================
+intent_routing:
+  # Any mention of time/scheduling = calendar
+  - intents:
+      - "schedule.*"
+      - "book.*time"
+      - "find.*meeting"
+      - "when.*available"
+      - "check.*calendar"
+      - "add.*event"
+      - "remove.*event"
+      - "calendar.*conflict"
+      - "busy"
+      - "free"
+      - "meeting.*time"
+      - "appointment"
+      - "availability"
+    action: "ROUTE_TO_CALENDAR"
+    priority: 1000  # Highest priority
+
+  # Calendar-adjacent operations
+  - intents:
+      - "prepare.*meeting"
+      - "meeting.*notes"
+      - "meeting.*summary"
+      - "action.*from.*meeting"
+    action: "CHECK_CALENDAR_FIRST"
+    then: "ROUTE_TO_CALENDAR_FOR_CONTEXT"
+
+# ============================================================================
+# KEYWORD DETECTION
+# ============================================================================
+keyword_detection:
+  always_route_to_calendar:
+    - "calendar"
+    - "schedule"
+    - "meeting"
+    - "appointment"
+    - "availability"
+    - "busy"
+    - "free"
+    - "booked"
+    - "time slot"
+    - "when can"
+    - "block time"
+    - "sync calendar"
+
+  contextual_check_calendar:
+    - "attend"
+    - "present"
+    - "join"
+    - "conference"
+    - "call"
+    - "sync"
+
+# ============================================================================
+# DECISION RULES
+# ============================================================================
+decision_rules:
+  - rule: "User asks 'Can I do X?'"
+    action: "CHECK_CALENDAR for conflicts, THEN answer"
+
+  - rule: "User says 'Schedule X for [time]'"
+    action: "VERIFY_AVAILABILITY first, THEN schedule"
+
+  - rule: "User mentions multiple people meeting"
+    action: "FIND_OPTIMAL_TIME using calendar-go's attendee check"
+
+  - rule: "User says 'I'm busy' or 'I'm free'"
+    action: "VERIFY_AGAINST_CALENDAR before accepting"
+
+  - rule: "User needs to schedule with others"
+    action: "RUN find-meeting-time skill"
+
+  - rule: "Event details are discussed"
+    action: "AUTOMATICALLY_LINK to related tasks/opportunities"
+
+# ============================================================================
+# PROACTIVE BEHAVIORS
+# ============================================================================
+proactive_behaviors:
+  before_suggesting_anything:
+    - "Always check calendar first"
+    - "Never suggest times without verifying availability"
+    - "Warn if user is overbooked"
+    - "Suggest optimal time slots"
+
+  when_scheduling:
+    - "Check for conflicts"
+    - "Find attendee availability"
+    - "Link to related tasks"
+    - "Link to related opportunities"
+    - "Sync to all calendars"
+
+  when_planning:
+    - "Review calendar for context"
+    - "Identify free time"
+    - "Suggest focus blocks"
+    - "Highlight overbooked periods"
+
+# ============================================================================
+# CONFLICT PREVENTION
+# ============================================================================
+conflict_prevention:
+  prevent:
+    - "Suggesting times without checking calendar"
+    - "Booking overlapping events"
+    - "Scheduling without verifying attendee availability"
+    - "Adding events only to one calendar (must sync to all)"
+    - "Forgetting to link events to tasks/opportunities"
+
+  enforce:
+    - "Calendar is the SOURCE OF TRUTH"
+    - "All time suggestions must be checked against calendar"
+    - "All scheduling must verify availability"
+    - "All event adds must sync to all calendars"
+
+# ============================================================================
+# FALLBACK BEHAVIOR
+# ============================================================================
+fallback:
+  if_calendar_unavailable:
+    - "Warn user: 'Calendar is temporarily unavailable'"
+    - "Do NOT suggest times without verification"
+    - "Ask user to verify their availability manually"
+    - "Retry calendar check in 30 seconds"
+
+  if_time_parsing_fails:
+    - "Ask user to clarify: 'Did you mean [parsed time]?'"
+    - "Always confirm before booking"
+
+# ============================================================================
+# INTEGRATION POINTS
+# ============================================================================
+integrations:
+  day_ai:
+    sync: true
+    rule: "Link meetings to Day.ai opportunities"
+
+  task_management:
+    sync: true
+    rule: "Link events to tasks"
+
+  knowledge:
+    sync: true
+    rule: "Index meeting notes"
+
+  performance:
+    sync: true
+    rule: "Track sprint dates"
+
+# ============================================================================
+# LOGGING & MONITORING
+# ============================================================================
+logging:
+  log_all_calendar_requests: true
+  log_conflicts: true
+  log_scheduling_decisions: true
+  audit_trail: "ENABLED"
+
+monitoring:
+  track_response_time: true
+  alert_on_availability_fail: true
+  track_scheduling_accuracy: true
+
+# ============================================================================
+# CRITICAL RULES
+# ============================================================================
+critical:
+  - "NEVER schedule without calendar verification"
+  - "ALWAYS sync to all calendars after changes"
+  - "ALWAYS link events to tasks/opportunities"
+  - "Calendar is the source of truth - defer to it"
+  - "Conflicts are errors - resolve before proceeding"
+
+version: "1.0"
+last_updated: "2026-03-02"
+enforced: true

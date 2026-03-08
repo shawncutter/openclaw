@@ -1,0 +1,280 @@
+# OpenClaw Calendar Skills
+# Route ALL calendar operations through SecondBrain Calendar Agent
+# This is the single source of truth for Shawn's time and commitments
+
+skills:
+  - name: "calendar:get-availability"
+    description: "Check Shawn's availability for a specific time or date range"
+    enabled: true
+    routing: "secondbrain-calendar"
+    parameters:
+      - name: "date_range"
+        type: "date_range"
+        required: true
+        description: "Start and end dates to check (format: YYYY-MM-DD)"
+      - name: "duration_minutes"
+        type: "integer"
+        required: false
+        description: "Minimum duration needed (in minutes)"
+    endpoint: "GET /api/calendars/availability"
+    returns:
+      - "available_slots: List of free time blocks"
+      - "busy_times: List of booked events"
+      - "recommendations: Suggested optimal times"
+
+  - name: "calendar:add-event"
+    description: "Add a new event to Shawn's calendar"
+    enabled: true
+    routing: "secondbrain-calendar"
+    parameters:
+      - name: "title"
+        type: "string"
+        required: true
+        description: "Event title"
+      - name: "start_time"
+        type: "datetime"
+        required: true
+        description: "Event start (ISO 8601: YYYY-MM-DDTHH:mm:ssZ)"
+      - name: "end_time"
+        type: "datetime"
+        required: true
+        description: "Event end (ISO 8601)"
+      - name: "location"
+        type: "string"
+        required: false
+        description: "Physical or virtual location"
+      - name: "description"
+        type: "string"
+        required: false
+        description: "Event details and notes"
+      - name: "attendees"
+        type: "array"
+        required: false
+        description: "List of attendee emails"
+      - name: "calendar"
+        type: "string"
+        required: false
+        description: "Which calendar (apple-local, google, outlook) - defaults to apple-local"
+    endpoint: "POST /api/calendars/events"
+    returns:
+      - "event_id: Unique event identifier"
+      - "conflicts: Any conflicting events"
+      - "synced_to: List of calendars synced to"
+
+  - name: "calendar:update-event"
+    description: "Modify an existing calendar event"
+    enabled: true
+    routing: "secondbrain-calendar"
+    parameters:
+      - name: "event_id"
+        type: "string"
+        required: true
+        description: "ID of event to modify"
+      - name: "title"
+        type: "string"
+        required: false
+      - name: "start_time"
+        type: "datetime"
+        required: false
+      - name: "end_time"
+        type: "datetime"
+        required: false
+      - name: "location"
+        type: "string"
+        required: false
+      - name: "description"
+        type: "string"
+        required: false
+      - name: "attendees"
+        type: "array"
+        required: false
+    endpoint: "PATCH /api/calendars/events/{event_id}"
+    returns:
+      - "updated: True if successful"
+      - "conflicts: Any new conflicts detected"
+
+  - name: "calendar:delete-event"
+    description: "Remove an event from calendar"
+    enabled: true
+    routing: "secondbrain-calendar"
+    parameters:
+      - name: "event_id"
+        type: "string"
+        required: true
+      - name: "notify_attendees"
+        type: "boolean"
+        required: false
+        description: "Send cancellation to attendees"
+    endpoint: "DELETE /api/calendars/events/{event_id}"
+    returns:
+      - "deleted: True if successful"
+
+  - name: "calendar:list-events"
+    description: "List events in a date range"
+    enabled: true
+    routing: "secondbrain-calendar"
+    parameters:
+      - name: "start_date"
+        type: "date"
+        required: true
+      - name: "end_date"
+        type: "date"
+        required: true
+      - name: "filter"
+        type: "string"
+        required: false
+        description: "Filter by: all, work, personal, meetings"
+    endpoint: "GET /api/calendars/events"
+    returns:
+      - "events: List of events with full details"
+      - "total_hours: Sum of event durations"
+
+  - name: "calendar:block-time"
+    description: "Create a time block (focus time, lunch, etc)"
+    enabled: true
+    routing: "secondbrain-calendar"
+    parameters:
+      - name: "title"
+        type: "string"
+        required: true
+        description: "Block name (e.g., 'Focus Time', 'Lunch')"
+      - name: "start_time"
+        type: "datetime"
+        required: true
+      - name: "duration_minutes"
+        type: "integer"
+        required: true
+      - name: "recurring"
+        type: "string"
+        required: false
+        description: "daily, weekly, or once"
+    endpoint: "POST /api/calendars/time-blocks"
+    returns:
+      - "block_id: Time block identifier"
+      - "recurring_instances: Number of future instances"
+
+  - name: "calendar:find-meeting-time"
+    description: "Find optimal time for a meeting with multiple attendees"
+    enabled: true
+    routing: "secondbrain-calendar"
+    parameters:
+      - name: "attendees"
+        type: "array"
+        required: true
+        description: "List of attendee emails"
+      - name: "duration_minutes"
+        type: "integer"
+        required: true
+      - name: "date_range_start"
+        type: "date"
+        required: true
+      - name: "date_range_end"
+        type: "date"
+        required: true
+      - name: "preferences"
+        type: "string"
+        required: false
+        description: "morning, afternoon, flexible"
+    endpoint: "POST /api/calendars/find-time"
+    returns:
+      - "suggested_slots: Top 3-5 optimal times"
+      - "attendee_conflicts: Who's busy when"
+
+  - name: "calendar:get-summary"
+    description: "Get a summary of Shawn's calendar for a time period"
+    enabled: true
+    routing: "secondbrain-calendar"
+    parameters:
+      - name: "period"
+        type: "string"
+        required: false
+        description: "today, week, month (default: week)"
+      - name: "include_details"
+        type: "boolean"
+        required: false
+        description: "Full event details or summary only"
+    endpoint: "GET /api/calendars/summary"
+    returns:
+      - "total_meetings: Count of meetings"
+      - "total_focused_time: Unscheduled time"
+      - "busy_score: 0-100 (0=free, 100=packed)"
+      - "events: List of events"
+
+  - name: "calendar:sync-all"
+    description: "Force sync all calendars (Google, Outlook, iCloud)"
+    enabled: true
+    routing: "secondbrain-calendar"
+    admin_only: true
+    endpoint: "POST /api/calendars/sync"
+    returns:
+      - "synced_calendars: List of calendars synced"
+      - "events_updated: Count of changes"
+
+  - name: "calendar:link-to-task"
+    description: "Link a calendar event to a task management system"
+    enabled: true
+    routing: "secondbrain-calendar"
+    parameters:
+      - name: "event_id"
+        type: "string"
+        required: true
+      - name: "task_system"
+        type: "string"
+        required: true
+        description: "clickup, onemedium, or other"
+      - name: "task_id"
+        type: "string"
+        required: true
+    endpoint: "POST /api/calendars/events/{event_id}/link-task"
+    returns:
+      - "linked: True if successful"
+      - "bi_directional: Updates flow both ways"
+
+  - name: "calendar:link-to-opportunity"
+    description: "Link a calendar event to a Day.ai opportunity"
+    enabled: true
+    routing: "secondbrain-calendar"
+    parameters:
+      - name: "event_id"
+        type: "string"
+        required: true
+      - name: "opportunity_id"
+        type: "string"
+        required: true
+      - name: "organization_id"
+        type: "string"
+        required: false
+    endpoint: "POST /api/calendars/events/{event_id}/link-opportunity"
+    returns:
+      - "linked: True if successful"
+
+# CRITICAL RULE: ALL calendar operations route through SecondBrain Calendar
+routing_rules:
+  - trigger: "any request with keywords: calendar, schedule, meeting, time, availability, book, event"
+    action: "ALWAYS route to secondbrain-calendar"
+    priority: "CRITICAL"
+
+  - trigger: "any time-related planning or scheduling"
+    action: "ALWAYS consult calendar first"
+    priority: "CRITICAL"
+
+  - trigger: "any request mentioning specific dates/times"
+    action: "ALWAYS check SecondBrain Calendar for conflicts"
+    priority: "CRITICAL"
+
+# Prevent conflicts with other systems
+conflict_prevention:
+  - rule: "Never suggest times without checking calendar"
+  - rule: "Never schedule without verifying availability"
+  - rule: "Never add events to other systems without syncing to calendar"
+  - rule: "Calendar is source of truth - always defer to it"
+
+# OpenClaw should proactively use calendar
+proactive_behaviors:
+  - "When scheduling anything, automatically check availability"
+  - "When suggesting meeting times, run find-meeting-time skill"
+  - "When user says 'I'm busy', verify against calendar"
+  - "When user mentions a time, check if available before confirming"
+  - "Warn if suggesting conflicting times"
+  - "Always link events to related tasks/opportunities"
+  - "Suggest optimal meeting times based on attendee calendars"
