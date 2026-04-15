@@ -37,7 +37,7 @@ actor SecondBrainContactAPIClient {
     // MARK: - Public API
 
     func getContacts(userId: UUID, limit: Int = 50, offset: Int = 0) async throws -> SecondBrainContactListResponse {
-        var components = URLComponents(url: baseURL.appendingPathComponent("/api/v1/contact/contacts"), resolvingAgainstBaseURL: false)
+        var components = URLComponents(url: baseURL.appendingPathComponent("/api/v1/contacts"), resolvingAgainstBaseURL: false)
         components?.queryItems = [
             URLQueryItem(name: "user_id", value: userId.uuidString),
             URLQueryItem(name: "limit", value: String(limit)),
@@ -52,7 +52,7 @@ actor SecondBrainContactAPIClient {
     }
 
     func searchContacts(userId: UUID, query: String) async throws -> [SecondBrainContact] {
-        var components = URLComponents(url: baseURL.appendingPathComponent("/api/v1/contact/contacts/search"), resolvingAgainstBaseURL: false)
+        var components = URLComponents(url: baseURL.appendingPathComponent("/api/v1/contacts/search"), resolvingAgainstBaseURL: false)
         components?.queryItems = [
             URLQueryItem(name: "user_id", value: userId.uuidString),
             URLQueryItem(name: "q", value: query),
@@ -67,7 +67,7 @@ actor SecondBrainContactAPIClient {
     }
 
     func triggerGmailSync(userId: UUID) async throws {
-        guard let url = URLComponents(url: baseURL.appendingPathComponent("/api/v1/contact/sync/gmail"), resolvingAgainstBaseURL: false)?.url else {
+        guard let url = URLComponents(url: baseURL.appendingPathComponent("/api/v1/contacts/sync/gmail"), resolvingAgainstBaseURL: false)?.url else {
             throw SecondBrainContactAPIError.invalidURL
         }
 
@@ -80,7 +80,7 @@ actor SecondBrainContactAPIClient {
     }
 
     func triggerDedup(userId: UUID) async throws -> Int {
-        guard let url = URLComponents(url: baseURL.appendingPathComponent("/api/v1/contact/dedup"), resolvingAgainstBaseURL: false)?.url else {
+        guard let url = URLComponents(url: baseURL.appendingPathComponent("/api/v1/contacts/dedup"), resolvingAgainstBaseURL: false)?.url else {
             throw SecondBrainContactAPIError.invalidURL
         }
 
